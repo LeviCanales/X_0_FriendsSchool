@@ -1,14 +1,14 @@
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Tic Tac Toe</title>
+    <title>X 0 - Friends School</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <div class="container">
         <header>
-            <h1>Tic Tac Toe</h1>
+            <h1>X 0 - Friends School</h1>
             <div id="user-status">
                 <!-- User info will be displayed here when logged in -->
             </div>
@@ -16,20 +16,20 @@
 
         <div id="auth-container">
             <div class="tabs">
-                <button class="tab-btn active" data-target="login-form">Login</button>
-                <button class="tab-btn" data-target="register-form">Register</button>
+                <button class="tab-btn active" data-target="login-form">Entrar</button>
+                <button class="tab-btn" data-target="register-form">Registrarse</button>
             </div>
             
             <form id="login-form" class="auth-form">
                 <div class="form-group">
-                    <label for="login-username">Username</label>
+                    <label for="login-username">Usuario</label>
                     <input type="text" id="login-username" name="username" required>
                 </div>
                 <div class="form-group">
-                    <label for="login-password">Password</label>
+                    <label for="login-password">Contraseña</label>
                     <input type="password" id="login-password" name="password" required>
                 </div>
-                <button type="submit">Login</button>
+                <button type="submit">Entrar</button>
                 <div class="error-message"></div>
             </form>
 
@@ -50,7 +50,7 @@
                     <label for="register-password-confirm">Confirm Password</label>
                     <input type="password" id="register-password-confirm" name="password_confirm" required>
                 </div>
-                <button type="submit">Register</button>
+                <button type="submit">Registrarse</button>
                 <div class="error-message"></div>
             </form>
         </div>

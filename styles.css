@@ -47,6 +47,7 @@ h1 {
     display: flex;
     margin-bottom: 20px;
     border-bottom: 1px solid #eee;
+    padding-bottom: 20px;
 }
 
 .tab-btn {
@@ -56,6 +57,7 @@ h1 {
     cursor: pointer;
     font-size: 16px;
     transition: all 0.3s ease;
+    color: #3498db;
 }
 
 .tab-btn.active {
