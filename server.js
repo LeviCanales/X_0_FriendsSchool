@@ -62,10 +62,19 @@ app.post('/api/auth/register', async (req, res) => {
                 message: 'Todos los campos son obligatorios' 
             });
         }
+
+        // Validar email con expresión regular
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return res.status(400).json({ 
+                success: false, 
+                message: 'El formato del email es inválido' 
+            });
+        }
         
         // Verificar si el usuario ya existe
         const [userExists] = await pool.query(
-            'SELECT id FROM users WHERE username = ? OR email = ?',
+            'SELECT id FROM usuarios WHERE username = ? OR email = ?',
             [username, email]
         );
         
@@ -81,7 +90,7 @@ app.post('/api/auth/register', async (req, res) => {
         
         // Insertar nuevo usuario
         const [result] = await pool.query(
-            'INSERT INTO users (username, email, password) VALUES (?, ?, ?)',
+            'INSERT INTO usuarios (username, email, password) VALUES (?, ?, ?)',
             [username, email, hashedPassword]
         );
         
@@ -106,7 +115,7 @@ app.post('/api/auth/login', async (req, res) => {
         
         // Buscar usuario
         const [users] = await pool.query(
-            'SELECT id, username, email, password FROM users WHERE username = ?',
+            'SELECT id, username, email, password FROM usuarios WHERE username = ?',
             [username]
         );
         
@@ -180,16 +189,31 @@ app.post('/api/games', isAuthenticated, async (req, res) => {
         const { opponent, result } = req.body;
         const userId = req.session.userId;
         
+        // Determinar el resultado según la API
+        let resultadoDB;
+        if (result === 'win') {
+            resultadoDB = 'jugador1';
+        } else if (result === 'loss') {
+            resultadoDB = 'jugador2';
+        } else {
+            resultadoDB = 'empate';
+        }
+        
         // Guardar partida
         await pool.query(
-            'INSERT INTO games (user_id, opponent, result, date) VALUES (?, ?, ?, NOW())',
-            [userId, opponent, result]
+            'INSERT INTO partidas (id_jugador1, id_jugador2, resultado, fecha_partida) VALUES (?, ?, ?, NOW())',
+            [userId, opponent === 'CPU' ? null : opponent, resultadoDB]
         );
         
         // Actualizar estadísticas
         if (result === 'win') {
             await pool.query(
                 'UPDATE user_stats SET wins = wins + 1 WHERE user_id = ?',
+                [userId]
+            );
+            // Incrementar partidas_ganadas
+            await pool.query(
+                'UPDATE usuarios SET partidas_ganadas = partidas_ganadas + 1 WHERE id = ?',
                 [userId]
             );
         } else if (result === 'loss') {
@@ -252,19 +276,18 @@ app.get('/api/leaderboard', async (req, res) => {
             SELECT 
                 u.id, 
                 u.username, 
+                u.partidas_ganadas,
                 s.wins, 
                 s.losses, 
                 s.draws,
                 (s.wins + s.losses + s.draws) as total_games,
                 ROUND((s.wins / (s.wins + s.losses + s.draws)) * 100, 0) as win_rate
             FROM 
-                users u
-            JOIN 
+                usuarios u
+            LEFT JOIN 
                 user_stats s ON u.id = s.user_id
-            WHERE 
-                (s.wins + s.losses + s.draws) > 0
             ORDER BY 
-                s.wins DESC, 
+                u.partidas_ganadas DESC, 
                 win_rate DESC
             LIMIT 20
         `);
@@ -272,9 +295,10 @@ app.get('/api/leaderboard', async (req, res) => {
         res.json(leaderboard.map(player => ({
             id: player.id,
             username: player.username,
-            wins: player.wins,
-            totalGames: player.total_games,
-            winRate: player.win_rate
+            partidas_ganadas: player.partidas_ganadas,
+            wins: player.wins || 0,
+            totalGames: player.total_games || 0,
+            winRate: player.win_rate || 0
         })));
         
     } catch (error) {
@@ -299,15 +323,15 @@ app.get('/api/users/:userId/games', isAuthenticated, async (req, res) => {
         const [games] = await pool.query(`
             SELECT 
                 id, 
-                opponent, 
-                result, 
-                date 
+                id_jugador2 AS opponent, 
+                resultado AS result, 
+                fecha_partida AS date 
             FROM 
-                games 
+                partidas 
             WHERE 
-                user_id = ? 
+                id_jugador1 = ? 
             ORDER BY 
-                date DESC 
+                fecha_partida DESC 
             LIMIT 10
         `, [userId]);
         
@@ -315,7 +339,7 @@ app.get('/api/users/:userId/games', isAuthenticated, async (req, res) => {
         const history = games.map(game => ({
             id: game.id,
             opponent: game.opponent,
-            result: translateResult(game.result),
+            result: game.result === 'jugador1' ? 'win' : game.result === 'jugador2' ? 'loss' : 'draw',
             date: game.date
         }));
         
@@ -338,4 +362,3 @@ function translateResult(result) {
 app.listen(PORT, () => {
     console.log(`Servidor ejecutándose en el puerto ${PORT}`);
 });
-

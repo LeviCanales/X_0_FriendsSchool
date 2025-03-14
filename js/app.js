@@ -105,16 +105,6 @@ const app = createApp({
                 return;
             }
             
-            if (this.registerForm.username.length < 3) {
-                this.registerError = 'El nombre de usuario debe tener al menos 3 caracteres';
-                return;
-            }
-            
-            if (this.registerForm.password.length < 6) {
-                this.registerError = 'La contraseña debe tener al menos 6 caracteres';
-                return;
-            }
-            
             try {
                 const response = await api.register(
                     this.registerForm.username,
@@ -295,4 +285,3 @@ const app = createApp({
 });
 
 app.mount('#app');
-

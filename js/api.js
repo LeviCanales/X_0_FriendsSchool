@@ -35,6 +35,25 @@ export const api = {
     },
     
     async register(username, email, password) {
+        // Validaciones básicas
+        if (!username || !email || !password) {
+            return { success: false, message: 'Todos los campos son obligatorios' };
+        }
+        
+        if (username.length < 3) {
+            return { success: false, message: 'El nombre de usuario debe tener al menos 3 caracteres' };
+        }
+        
+        if (password.length < 6) {
+            return { success: false, message: 'La contraseña debe tener al menos 6 caracteres' };
+        }
+        
+        // Verificar formato de email con una expresión regular básica
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        if (!emailRegex.test(email)) {
+            return { success: false, message: 'El formato del email es inválido' };
+        }
+        
         // Obtener usuarios existentes
         const users = JSON.parse(localStorage.getItem('tictactoe_users') || '[]');
         
@@ -53,7 +72,8 @@ export const api = {
             username,
             email,
             password: this.hashPassword(password),
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            partidas_ganadas: 0
         };
         
         // Guardar en localStorage
@@ -101,15 +121,15 @@ export const api = {
         const games = JSON.parse(localStorage.getItem('tictactoe_games') || '[]');
         const newGame = {
             id: Date.now().toString(),
-            user_id: userId,
-            opponent,
+            id_jugador1: userId,
+            id_jugador2: opponent === 'CPU' ? 'CPU' : opponent,
             result,
             date: new Date().toISOString()
         };
         games.push(newGame);
         localStorage.setItem('tictactoe_games', JSON.stringify(games));
         
-        // Actualizar estadísticas
+        // Actualizar estadísticas y contador de partidas ganadas
         const stats = JSON.parse(localStorage.getItem('tictactoe_stats') || '{}');
         if (!stats[userId]) {
             stats[userId] = {
@@ -124,6 +144,14 @@ export const api = {
         
         if (result === 'win') {
             stats[userId].wins++;
+            
+            // Actualizar partidas_ganadas en el perfil del usuario
+            const users = JSON.parse(localStorage.getItem('tictactoe_users') || '[]');
+            const userIndex = users.findIndex(u => u.id === userId);
+            if (userIndex !== -1) {
+                users[userIndex].partidas_ganadas = (users[userIndex].partidas_ganadas || 0) + 1;
+                localStorage.setItem('tictactoe_users', JSON.stringify(users));
+            }
         } else if (result === 'loss') {
             stats[userId].losses++;
         } else {
@@ -175,13 +203,14 @@ export const api = {
                 wins: userStats.wins,
                 losses: userStats.losses,
                 draws: userStats.draws,
+                partidas_ganadas: user.partidas_ganadas || 0,
                 totalGames,
                 winRate
             };
         });
         
         // Ordenar por victorias (descendente)
-        return leaderboardData.sort((a, b) => b.wins - a.wins);
+        return leaderboardData.sort((a, b) => b.partidas_ganadas - a.partidas_ganadas);
     },
     
     async getGameHistory(userId) {
@@ -189,10 +218,10 @@ export const api = {
         
         // Filtrar partidas del usuario y transformar datos
         return games
-            .filter(game => game.user_id === userId)
+            .filter(game => game.id_jugador1 === userId)
             .map(game => ({
                 id: game.id,
-                opponent: game.opponent,
+                opponent: game.id_jugador2,
                 result: this.translateResult(game.result),
                 date: game.date
             }))
@@ -219,4 +248,3 @@ export const api = {
         return 'Empate';
     }
 };
-

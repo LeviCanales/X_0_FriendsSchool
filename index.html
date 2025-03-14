@@ -131,8 +131,8 @@
                                 <tr>
                                     <th>Posición</th>
                                     <th>Jugador</th>
-                                    <th>Victorias</th>
-                                    <th>Partidas</th>
+                                    <th>Partidas Ganadas</th>
+                                    <th>Partidas Totales</th>
                                     <th>% Victoria</th>
                                 </tr>
                             </thead>
@@ -141,7 +141,7 @@
                                     :class="{ 'current-user': player.username === user.username }">
                                     <td>{{ index + 1 }}</td>
                                     <td>{{ player.username }}</td>
-                                    <td>{{ player.wins }}</td>
+                                    <td>{{ player.partidas_ganadas }}</td>
                                     <td>{{ player.totalGames }}</td>
                                     <td>{{ player.winRate }}%</td>
                                 </tr>
