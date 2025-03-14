@@ -2,121 +2,179 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>X 0 - Friends School</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Tic Tac Toe</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script type="importmap">
+        {
+            "imports": {
+                "vue": "https://unpkg.com/vue@3/dist/vue.esm-browser.js"
+            }
+        }
+    </script>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <h1>X 0 - Friends School</h1>
-            <div id="user-status">
-                <!-- User info will be displayed here when logged in -->
-            </div>
-        </header>
-
-        <div id="auth-container">
-            <div class="tabs">
-                <button class="tab-btn active" data-target="login-form">Entrar</button>
-                <button class="tab-btn" data-target="register-form">Registrarse</button>
+    <div id="app">
+        <!-- Componente de autenticación -->
+        <div v-if="!isAuthenticated" class="auth-container">
+            <div class="auth-tabs">
+                <button :class="{active: authTab === 'login'}" @click="authTab = 'login'">Iniciar Sesión</button>
+                <button :class="{active: authTab === 'register'}" @click="authTab = 'register'">Registrarse</button>
             </div>
             
-            <form id="login-form" class="auth-form">
+            <!-- Formulario de inicio de sesión -->
+            <form v-if="authTab === 'login'" @submit.prevent="login" class="auth-form">
+                <h2>Iniciar Sesión</h2>
                 <div class="form-group">
-                    <label for="login-username">Usuario</label>
-                    <input type="text" id="login-username" name="username" required>
+                    <label for="loginUsername">Usuario:</label>
+                    <input type="text" id="loginUsername" v-model="loginForm.username" required>
                 </div>
                 <div class="form-group">
-                    <label for="login-password">Contraseña</label>
-                    <input type="password" id="login-password" name="password" required>
+                    <label for="loginPassword">Contraseña:</label>
+                    <input type="password" id="loginPassword" v-model="loginForm.password" required>
                 </div>
-                <button type="submit">Entrar</button>
-                <div class="error-message"></div>
+                <div v-if="loginError" class="error-message">{{ loginError }}</div>
+                <button type="submit" class="btn-primary">Iniciar Sesión</button>
             </form>
-
-            <form id="register-form" class="auth-form" style="display: none;">
+            
+            <!-- Formulario de registro -->
+            <form v-if="authTab === 'register'" @submit.prevent="register" class="auth-form">
+                <h2>Crear Cuenta</h2>
                 <div class="form-group">
-                    <label for="register-username">Username</label>
-                    <input type="text" id="register-username" name="username" required>
+                    <label for="regUsername">Usuario:</label>
+                    <input type="text" id="regUsername" v-model="registerForm.username" required 
+                           pattern="[a-zA-Z0-9_]{3,20}" title="Entre 3 y 20 caracteres alfanuméricos">
                 </div>
                 <div class="form-group">
-                    <label for="register-email">Email</label>
-                    <input type="email" id="register-email" name="email" required>
+                    <label for="regEmail">Email:</label>
+                    <input type="email" id="regEmail" v-model="registerForm.email" required>
                 </div>
                 <div class="form-group">
-                    <label for="register-password">Password</label>
-                    <input type="password" id="register-password" name="password" required>
+                    <label for="regPassword">Contraseña:</label>
+                    <input type="password" id="regPassword" v-model="registerForm.password" required
+                           pattern=".{6,}" title="Mínimo 6 caracteres">
                 </div>
                 <div class="form-group">
-                    <label for="register-password-confirm">Confirm Password</label>
-                    <input type="password" id="register-password-confirm" name="password_confirm" required>
+                    <label for="regPasswordConfirm">Confirmar Contraseña:</label>
+                    <input type="password" id="regPasswordConfirm" v-model="registerForm.passwordConfirm" required>
                 </div>
-                <button type="submit">Registrarse</button>
-                <div class="error-message"></div>
+                <div v-if="registerError" class="error-message">{{ registerError }}</div>
+                <button type="submit" class="btn-primary">Registrarse</button>
             </form>
         </div>
 
-        <div id="game-container" style="display: none;">
-            <div class="game-options">
-                <button id="new-game-btn">New Game</button>
-                <button id="view-stats-btn">View Statistics</button>
-                <button id="logout-btn">Logout</button>
-            </div>
-            
-            <div id="board-container">
-                <div class="status" id="status-message">Player X's turn</div>
-                <div class="board">
-                    <div class="cell" data-index="0"></div>
-                    <div class="cell" data-index="1"></div>
-                    <div class="cell" data-index="2"></div>
-                    <div class="cell" data-index="3"></div>
-                    <div class="cell" data-index="4"></div>
-                    <div class="cell" data-index="5"></div>
-                    <div class="cell" data-index="6"></div>
-                    <div class="cell" data-index="7"></div>
-                    <div class="cell" data-index="8"></div>
+        <!-- Aplicación principal después de autenticación -->
+        <div v-else class="main-container">
+            <header>
+                <h1>Tic Tac Toe</h1>
+                <div class="user-info">
+                    <span>Bienvenido, {{ user.username }}</span>
+                    <button @click="logout" class="btn-logout">Cerrar Sesión</button>
                 </div>
-            </div>
-        </div>
+            </header>
 
-        <div id="stats-container" style="display: none;">
-            <h2>Your Statistics</h2>
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-title">Games Played</div>
-                    <div class="stat-value" id="games-played">0</div>
+            <main>
+                <div class="game-container" v-if="currentView === 'game'">
+                    <div class="game-info">
+                        <div class="player" :class="{active: currentPlayer === 'X'}">
+                            <div class="player-symbol x">X</div>
+                            <div class="player-name">{{ playerX }}</div>
+                        </div>
+                        <div class="game-status">{{ gameStatus }}</div>
+                        <div class="player" :class="{active: currentPlayer === 'O'}">
+                            <div class="player-symbol o">O</div>
+                            <div class="player-name">{{ playerO }}</div>
+                        </div>
+                    </div>
+
+                    <div class="board">
+                        <div v-for="(cell, index) in board" 
+                             :key="index" 
+                             class="cell"
+                             :class="{'x-cell': cell === 'X', 'o-cell': cell === 'O', 'winning-cell': winningCells.includes(index)}"
+                             @click="makeMove(index)">
+                            <div v-if="cell === 'X'" class="x-mark"></div>
+                            <div v-if="cell === 'O'" class="o-mark"></div>
+                        </div>
+                    </div>
+
+                    <div class="game-controls">
+                        <button @click="resetGame" class="btn-primary">Nueva Partida</button>
+                        <button @click="currentView = 'stats'" class="btn-secondary">Ver Estadísticas</button>
+                    </div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-title">Wins</div>
-                    <div class="stat-value" id="games-won">0</div>
+
+                <div class="stats-container" v-if="currentView === 'stats'">
+                    <h2>Estadísticas</h2>
+                    
+                    <div class="user-stats">
+                        <h3>Tus Estadísticas</h3>
+                        <div class="stats-grid">
+                            <div class="stat-box">
+                                <div class="stat-value">{{ userStats.wins }}</div>
+                                <div class="stat-label">Victorias</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">{{ userStats.losses }}</div>
+                                <div class="stat-label">Derrotas</div>
+                            </div>
+                            <div class="stat-box">
+                                <div class="stat-value">{{ userStats.draws }}</div>
+                                <div class="stat-label">Empates</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="ranking">
+                        <h3>Ranking de Jugadores</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Posición</th>
+                                    <th>Jugador</th>
+                                    <th>Victorias</th>
+                                    <th>Partidas</th>
+                                    <th>% Victoria</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(player, index) in leaderboard" :key="player.id" 
+                                    :class="{ 'current-user': player.username === user.username }">
+                                    <td>{{ index + 1 }}</td>
+                                    <td>{{ player.username }}</td>
+                                    <td>{{ player.wins }}</td>
+                                    <td>{{ player.totalGames }}</td>
+                                    <td>{{ player.winRate }}%</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="game-history">
+                        <h3>Historial de Partidas</h3>
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Oponente</th>
+                                    <th>Resultado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="game in gameHistory" :key="game.id">
+                                    <td>{{ formatDate(game.date) }}</td>
+                                    <td>{{ game.opponent }}</td>
+                                    <td :class="getResultClass(game.result)">{{ game.result }}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <button @click="currentView = 'game'" class="btn-primary">Volver al Juego</button>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-title">Losses</div>
-                    <div class="stat-value" id="games-lost">0</div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-title">Draws</div>
-                    <div class="stat-value" id="games-draw">0</div>
-                </div>
-            </div>
-            <div class="recent-games">
-                <h3>Recent Games</h3>
-                <table id="recent-games-table">
-                    <thead>
-                        <tr>
-                            <th>Date</th>
-                            <th>Opponent</th>
-                            <th>Result</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <!-- Recent games will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
-            <button id="back-to-game-btn">Back to Game</button>
+            </main>
         </div>
     </div>
 
-    <script src="script.js"></script>
+    <script type="module" src="js/app.js"></script>
 </body>
 </html>
