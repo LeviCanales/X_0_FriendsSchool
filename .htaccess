@@ -1,0 +1,27 @@
+# Prevent directory listing
+Options -Indexes
+
+# Set default character set
+AddDefaultCharset UTF-8
+
+# Enable rewriting
+RewriteEngine On
+
+# Redirect all PHP requests to the appropriate file
+RewriteRule ^auth/(.*)$ php/auth.php [L]
+RewriteRule ^game/(.*)$ php/game.php [L]
+
+# PHP settings
+php_flag display_errors off
+php_value max_execution_time 30
+php_value upload_max_filesize 2M
+php_value post_max_size 8M
+php_value session.cookie_httponly 1
+
+# Security headers
+<IfModule mod_headers.c>
+    Header set X-Content-Type-Options "nosniff"
+    Header set X-XSS-Protection "1; mode=block"
+    Header set X-Frame-Options "SAMEORIGIN"
+</IfModule>
+
